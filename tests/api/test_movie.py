@@ -1,5 +1,3 @@
-from urllib import request
-
 import pytest
 import requests
 
@@ -7,8 +5,10 @@ from conftest import api_manager, super_admin, common_user
 from utils.data_generator import DataGenerator
 from constants.constants import MOVIES_ENDPOINT
 
+@pytest.mark.api
 class TestMoviesAPIPositive:
 
+    @pytest.mark.smoke
     def test_create_movie(self, super_admin, movie_data):
         """ Создаем фильм под super_admin"""
         response = super_admin.api.movies_api.create_movie(movie_data, expected_status=201)
@@ -17,6 +17,8 @@ class TestMoviesAPIPositive:
         assert data["name"] == movie_data["name"]
         assert "id" in data
 
+    @pytest.mark.slow
+    @pytest.mark.regression
     @pytest.mark.parametrize("role_name", ["super_admin", "common_user"])
     def test_get_movie_by_id(self, role_name, request, created_movie):
         """ Получаем данные о фильме под super_admin """
@@ -30,6 +32,8 @@ class TestMoviesAPIPositive:
         assert data["name"] == created_data["name"]
 
     #TODO В тесте на /update хорошо бы проверить саму сущность фильма через /get, а не только response проверять
+    @pytest.mark.slow
+    @pytest.mark.regression
     def test_update_movie(self, super_admin, created_movie):
         movie_id, _, _ = created_movie
         updated = {"name": "Updated name"}
@@ -52,6 +56,7 @@ class TestMoviesAPIPositive:
             expected_status=400
         )
 
+    @pytest.mark.regression
     def test_get_movies_with_filter_by_name(self, super_admin, created_movie):
         _, created_data, _ = created_movie
         # TODO Исправил с filters на params
@@ -66,6 +71,7 @@ class TestMoviesAPIPositive:
         assert len(movies) > 0
 
     #TODO Сделать позитивный тест на /delete
+    @pytest.mark.regression
     def test_delete_movie(self, super_admin, created_movie):
         movie_id, _, _ = created_movie
 
@@ -73,7 +79,7 @@ class TestMoviesAPIPositive:
         get_response = super_admin.api.movies_api.get_movie_by_id(movie_id, expected_status=404)
         assert get_response.json()["error"] == "Not Found"
 
-
+@pytest.mark.api
 class TestMoviesNegative:
 
     def test_get_movies_unauthorized(self, requester_movies):
@@ -137,5 +143,6 @@ class TestMoviesNegative:
         assert data["message"] == "Фильм не найден"
         assert data.get("statusCode") == 404
 
+    @pytest.mark.slow
     def test_create_movie(self, common_user, movie_data):
         common_user.api.movies_api.create_movie(movie_data, expected_status=403).json()

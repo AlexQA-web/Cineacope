@@ -6,30 +6,38 @@ from constants.constants import AUTH_BASE_URL, REGISTER_ENDPOINT, MOVIES_BASE_UR
 from constants.roles import Roles
 from custom_requester.custom_requester import CustomRequester
 from entities.user import User
-from resources import SuperAdminCreds
+from models.base_models import TestUser
+from resources.user_creds import SuperAdminCreds
 from utils.data_generator import DataGenerator
 
 @pytest.fixture
-def test_user():
-    """
-    Генерация случайного пользователя для тестов
-    """
-    random_email = DataGenerator.generate_random_email()
-    random_name = DataGenerator.generate_random_name()
+def test_user() -> TestUser:
+    random_password = DataGenerator.generate_random_password()
+
+    return TestUser(
+        email=DataGenerator.generate_random_email(),
+        fullName=DataGenerator.generate_random_name(),
+        password=random_password,
+        passwordRepeat=random_password,
+        roles=[Roles.USER]
+    )
+
+@pytest.fixture
+def registration_user_data():
+    """Данные для регистрации пользователя """
     random_password = DataGenerator.generate_random_password()
 
     return {
-        'email': random_email,
-        'fullName': random_name,
-        'password': random_password,
-        'passwordRepeat': random_password,
-        "roles": [Roles.USER.value]
+        "email": DataGenerator.generate_random_email(),
+        "fullName": DataGenerator.generate_random_name(),
+        "password": random_password,
+        "passwordRepeat": random_password,
+        "roles": [Roles.USER.value],
     }
-
 
 @pytest.fixture
 def registered_user(test_user, requester_auth):
-    """Всегда новая регистрация с реальным ID."""
+    """Всегда новая регистрация """
     response = requester_auth.send_request(
         method="POST",
         endpoint=REGISTER_ENDPOINT,
@@ -38,8 +46,8 @@ def registered_user(test_user, requester_auth):
     )
 
     response_data = response.json()
-    user_data = test_user.copy()
-    user_data["id"] = response_data["id"]  # ✅ РЕАЛЬНЫЙ UUID!
+    user_data = test_user.model_dump()
+    user_data["id"] = response_data["id"]
     user_data["roles"] = response_data.get("roles", ["USER"])
 
     return user_data
@@ -137,12 +145,11 @@ def super_admin(user_session):
 
 @pytest.fixture
 def creation_user_data(test_user):
-    updated_data = test_user.copy()
-    updated_data.update({
+    creation_user = test_user.model_copy(update={
         "verified": True,
-        "banned": False
+        "banned": False,
     })
-    return updated_data
+    return creation_user
 
 @pytest.fixture
 def common_user(user_session, super_admin, creation_user_data):
@@ -164,3 +171,5 @@ def user_id(api_manager, common_user):
     response = api_manager.auth_api.login_user(login_data).json()
 
     return response["user"]["id"]
+
+

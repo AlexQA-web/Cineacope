@@ -1,9 +1,10 @@
 import pytest
 
-
+@pytest.mark.api
 class TestMoviesFilters:
     """ Параметризированные тесты фильтрации фильмов """
 
+    @pytest.mark.regression
     @pytest.mark.parametrize("page_size,page", [
         (5, 1),
         (10, 1),
@@ -16,6 +17,7 @@ class TestMoviesFilters:
 
         assert response["page"] == page
 
+    @pytest.mark.regression
     @pytest.mark.parametrize("min_price,max_price", [
         (1, 100),
         (100, 500),
@@ -39,6 +41,7 @@ class TestMoviesFilters:
         for movie in response["movies"]:
             assert movie["location"] == location
 
+    @pytest.mark.regression
     @pytest.mark.parametrize("min_price,max_price,location,published,genre_id", [
         (100, 500, "MSK", True, 1),
         (200, 800, "SPB", True, 2),

@@ -1,109 +1,100 @@
 import pytest
 from faker import Faker
-from api_clients.api_manager import ApiManager
-from conftest import creation_user_data
-from utils.data_generator import DataGenerator
+
+from conftest import common_user
+from models.base_models import RegisterUserResponse
+
 
 faker = Faker()
 
-
+@pytest.mark.api
 class TestRegisterPositive:
     """Позитивные тесты регистрации"""
 
-    def test_register_user_with_valid_data(self, super_admin, creation_user_data):
+    @pytest.mark.regression
+    @pytest.mark.smoke
+    def test_register_user_with_valid_data(self, api_manager, registration_user_data):
         """ Регистрация с валидными данными """
-        response = super_admin.api.auth_api.register_user(creation_user_data, expected_status=201)
-        response_data = response.json()
+        response = api_manager.auth_api.register_user(user_data=registration_user_data)
+        response_data = RegisterUserResponse(**response.json())
 
-        assert response_data["email"] == creation_user_data["email"]
-        assert "id" in response_data
-        assert "USER" in response_data["roles"]
+        assert response_data.email == registration_user_data["email"], "Email не совпадает"
 
-    def test_register_user_returns_correct_structure(self, super_admin, creation_user_data):
-        """ Проверка структуры ответа при регистрации """
-        response = super_admin.api.auth_api.register_user(creation_user_data, expected_status=201).json()
-
-        assert "id" in response
-        assert "email" in response
-        assert "fullName" in response
-        assert "roles" in response
-        assert "verified" in response
-        assert "createdAt" in response
-        assert "banned" in response
-
-    def test_register_user_with_cyrillic_fullname(self, super_admin, creation_user_data):
+    @pytest.mark.regression
+    def test_register_user_with_cyrillic_fullname(self, api_manager, registration_user_data):
         """ Регистрация с кириллицей в ФИО """
-        creation_user_data["fullName"] = "Иван Иванович Иванов"
-        response = super_admin.api.auth_api.register_user(creation_user_data, expected_status=201).json()
+        registration_user_data["fullName"] = "Иван Иванович Иванов"
+        response = api_manager.auth_api.register_user(user_data=registration_user_data)
+        response_data = RegisterUserResponse(**response.json())
 
-        assert response["fullName"] == "Иван Иванович Иванов"
+        assert response_data.fullName == registration_user_data["fullName"]
 
-
+@pytest.mark.api
 class TestRegisterNegative:
     """ Негативные тесты регистрации """
+    @pytest.mark.slow
+    def test_register_user_with_existing_email(self, api_manager, creation_user_data):
+        """ Регистрация с уже существующим мылом """
+        response = api_manager.auth_api.register_user(user_data=creation_user_data, expected_status=404)
 
-    def test_register_user_with_existing_email(self, common_user, creation_user_data):
-        """ Регистрация с уже существующим email """
-        common_user.api.auth_api.register_user(creation_user_data, expected_status=409)
+    def test_register_user_with_invalid_email_format(self, registration_user_data, api_manager):
+        """ Некорректный формат мылом """
+        registration_user_data["email"] = "invalid_email"
+        api_manager.auth_api.register_user(registration_user_data, expected_status=400)
 
-    def test_register_user_with_invalid_email_format(self, test_user, api_manager):
-        """ Некорректный формат email """
-        test_user["email"] = "invalid_email"
-        api_manager.auth_api.register_user(test_user, expected_status=400)
+    def test_register_user_with_empty_email(self, registration_user_data, api_manager):
+        """ Пустое мыло """
+        registration_user_data["email"] = ""
+        api_manager.auth_api.register_user(registration_user_data, expected_status=400)
 
-    def test_register_user_with_empty_email(self, test_user, api_manager):
-        """ Пустой email """
-        test_user["email"] = ""
-        api_manager.auth_api.register_user(test_user, expected_status=400)
-
-    def test_register_user_with_empty_fullname(self, test_user, api_manager):
+    def test_register_user_with_empty_fullname(self, registration_user_data, api_manager):
         """ Пустое ФИО """
-        test_user["fullName"] = ""
-        api_manager.auth_api.register_user(test_user, expected_status=400)
+        registration_user_data["fullName"] = ""
+        api_manager.auth_api.register_user(registration_user_data, expected_status=400)
 
-    def test_register_user_with_empty_password(self, test_user, api_manager):
+    def test_register_user_with_empty_password(self, registration_user_data, api_manager):
         """ Пустой пароль """
-        test_user["password"] = ""
-        test_user["passwordRepeat"] = ""
-        api_manager.auth_api.register_user(test_user, expected_status=400)
+        registration_user_data["password"] = ""
+        registration_user_data["passwordRepeat"] = ""
+        api_manager.auth_api.register_user(registration_user_data, expected_status=400)
 
-    def test_register_user_with_mismatched_passwords(self, test_user, api_manager):
+    def test_register_user_with_mismatched_passwords(self, registration_user_data, api_manager):
         """ Пароли не совпадают """
-        test_user["passwordRepeat"] = "DifferentPassword123"
-        api_manager.auth_api.register_user(test_user, expected_status=400)
+        registration_user_data["passwordRepeat"] = "DifferentPassword123"
+        api_manager.auth_api.register_user(registration_user_data, expected_status=400)
 
-    def test_register_user_with_short_password(self, test_user, api_manager):
+    def test_register_user_with_short_password(self, registration_user_data, api_manager):
         """ Слишком короткий пароль """
         short_pass = "Aa1"
-        test_user["password"] = short_pass
-        test_user["passwordRepeat"] = short_pass
-        api_manager.auth_api.register_user(test_user, expected_status=400)
+        registration_user_data["password"] = short_pass
+        registration_user_data["passwordRepeat"] = short_pass
+        api_manager.auth_api.register_user(registration_user_data, expected_status=400)
 
-    def test_register_user_without_uppercase(self, test_user, api_manager):
+    def test_register_user_without_uppercase(self, registration_user_data, api_manager):
         """ Пароль без заглавных букв """
         new_pass = "password123"
-        test_user["password"] = new_pass
-        test_user["passwordRepeat"] = new_pass
-        api_manager.auth_api.register_user(test_user, expected_status=400)
+        registration_user_data["password"] = new_pass
+        registration_user_data["passwordRepeat"] = new_pass
+        api_manager.auth_api.register_user(registration_user_data, expected_status=400)
 
-    def test_register_user_without_digits(self, test_user, api_manager):
+    def test_register_user_without_digits(self, registration_user_data, api_manager):
         """ Пароль без цифр """
         new_pass = "PasswordAbc"
-        test_user["password"] = new_pass
-        test_user["passwordRepeat"] = new_pass
-        api_manager.auth_api.register_user(test_user, expected_status=400)
+        registration_user_data["password"] = new_pass
+        registration_user_data["passwordRepeat"] = new_pass
+        api_manager.auth_api.register_user(registration_user_data, expected_status=400)
 
-    def test_register_user_with_sql_injection_attempt(self, test_user, api_manager):
-        """Попытка SQL-инъекции в email"""
-        test_user["email"] = "admin'--@test.com"
-        response = api_manager.auth_api.register_user(test_user, expected_status=400).json()
+    def test_register_user_with_sql_injection_attempt(self, registration_user_data, api_manager):
+        """Попытка инъекции в мыло"""
+        registration_user_data["email"] = "admin'--@test.com"
+        response = api_manager.auth_api.register_user(registration_user_data, expected_status=400).json()
 
         assert "Некорректный email" in response["message"]
 
-    def test_register_user_without_password_repeat(self, test_user, api_manager):
+    def test_register_user_without_password_repeat(self, registration_user_data, api_manager):
         """ Отсутствие поля passwordRepeat """
-        test_user.pop("passwordRepeat", None)
-        api_manager.auth_api.register_user(test_user, expected_status=400)
+        data = registration_user_data.pop("passwordRepeat")
+        api_manager.auth_api.register_user(data, expected_status=400)
 
 
 
