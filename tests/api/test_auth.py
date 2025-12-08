@@ -33,10 +33,12 @@ class TestRegisterPositive:
 class TestRegisterNegative:
     """ Негативные тесты регистрации """
     @pytest.mark.slow
-    def test_register_user_with_existing_email(self, api_manager, creation_user_data):
+    def test_register_user_with_existing_email(self, api_manager, registered_user):
         """ Регистрация с уже существующим мылом """
-        response = api_manager.auth_api.register_user(user_data=creation_user_data, expected_status=404)
-
+        response = api_manager.auth_api.register_user(
+            user_data=registered_user,
+            expected_status=409
+        )
     def test_register_user_with_invalid_email_format(self, registration_user_data, api_manager):
         """ Некорректный формат мылом """
         registration_user_data["email"] = "invalid_email"

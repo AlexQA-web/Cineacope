@@ -1,6 +1,5 @@
-from dataclasses import Field
 from typing import Optional
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 from constants.roles import Roles
 

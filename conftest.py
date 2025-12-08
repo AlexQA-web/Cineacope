@@ -1,10 +1,13 @@
+from datetime import datetime
 import requests
 import pytest
-
+from sqlalchemy.orm import Session
 from api_clients.api_manager import ApiManager
 from constants.constants import AUTH_BASE_URL, REGISTER_ENDPOINT, MOVIES_BASE_URL
 from constants.roles import Roles
 from custom_requester.custom_requester import CustomRequester
+from db_requester.db_client import get_db_session
+from db_requester.db_helpers import DBHelper
 from entities.user import User
 from models.base_models import TestUser
 from resources.user_creds import SuperAdminCreds
@@ -97,9 +100,25 @@ def movie_data():
         "description": DataGenerator.generate_movie_description(),
         "location": DataGenerator.generate_movie_location(),
         "published": DataGenerator.generate_movie_published(),
-        "genreId": DataGenerator.generate_movie_genre_id(),  # тут рандом 1..5
+        "genreId": DataGenerator.generate_movie_genre_id(), # тут рандом 1..5
+        "rating": 1
     }
-
+@pytest.fixture
+def movie_data_db():
+    """
+    Фикстура создания данных для создания фильма
+    """
+    return {
+        "name": DataGenerator.generate_movie_name(),
+        "image_url": DataGenerator.generate_movie_image_url(),
+        "price": DataGenerator.generate_movie_price(),
+        "description": DataGenerator.generate_movie_description(),
+        "location": DataGenerator.generate_movie_location(),
+        "published": DataGenerator.generate_movie_published(),
+        "genre_id": DataGenerator.generate_movie_genre_id(), # тут рандом 1..5
+        "rating": 1,
+        "created_at": datetime.now()
+    }
 
 @pytest.fixture
 def created_movie(super_admin, movie_data):
@@ -156,8 +175,8 @@ def common_user(user_session, super_admin, creation_user_data):
     new_session = user_session()
 
     common_user = User(
-        creation_user_data['email'],
-        creation_user_data['password'],
+        creation_user_data.email,
+        creation_user_data.password,
         [Roles.USER.value],
         new_session)
 
@@ -172,4 +191,32 @@ def user_id(api_manager, common_user):
 
     return response["user"]["id"]
 
+@pytest.fixture(scope="module")
+def db_session() -> Session:
+    """
+    Фикстура, которая создает и возвращает сессию для работы с базой данных
+    После завершения теста сессия автоматически закрывается
+    """
+    db_session = get_db_session()
+    yield db_session
+    db_session.close()
 
+@pytest.fixture(scope="function")
+def db_helper(db_session) -> DBHelper:
+    """
+    Фикстура для экземпляра хелпера
+    """
+    db_helper = DBHelper(db_session)
+    return db_helper
+
+@pytest.fixture(scope="function")
+def created_test_user(db_helper):
+    """
+    Фикстура, которая создает тестового пользователя в БД
+    и удаляет его после завершения теста
+    """
+    user = db_helper.create_test_user(DataGenerator.generate_user_data())
+    yield user
+    # Cleanup после теста
+    if db_helper.get_user_by_id(user.id):
+        db_helper.delete_user(user)
