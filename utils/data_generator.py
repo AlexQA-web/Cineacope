@@ -71,6 +71,12 @@ class DataGenerator:
         return random.randint(1, 5)
 
     @staticmethod
+    def generate_movie_genre():
+        return random.choice(["Драма", "Комедия", "Фантастика", "Криминал",
+                              "Триллер", "Аниме", "Мюзикл", "Фэнтези", "Анимация"]
+                             )
+
+    @staticmethod
     def query_params():
         city_list = ["MSK", "SPB"]
         return {

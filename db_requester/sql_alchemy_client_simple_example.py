@@ -32,7 +32,6 @@ def sdl_alchemy_SQL():
         for row in result:
             print(row)
 
-#Modul_4\Cinescope\db_requester\sql_alchemy_client_simple_example.py
 
 def sql_alchemy_orm():
     # Базовый класс для моделей
