@@ -21,29 +21,23 @@ class TestLoginPage:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=False)
             page = browser.new_page()
-            current_page = CinescopeLoginPage(page)
 
+            current_page = CinescopeLoginPage(page)
             current_page.open()
             current_page.login(email, password)
-            time.sleep(2)
 
             current_page = CinescopeMainPage(page)
-
             current_page.click_profile_button()
-            time.sleep(2)
 
             current_page = CinescopeProfilePage(page)
             current_page.click_admin_panel_button()
-            time.sleep(2)
 
             current_page = AdminPanelPage(page)
             current_page.click_element(current_page.movies)
             current_page.click_element(current_page.movie_add_button)
-            time.sleep(2)
 
             current_page = CreateMoviePage(page)
             current_page.add_new_movie()
+            current_page.assert_alert_was_pop_up()
 
-            # Пауза для визуальной проверки (нужно удалить в реальном тестировании)
-            time.sleep(5)
             browser.close()

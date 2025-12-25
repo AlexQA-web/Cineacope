@@ -211,13 +211,15 @@ class CreateMoviePage(BasePage):
         self.enter_text_to_element(self.description_input, DataGenerator.generate_movie_description())
         price = DataGenerator.generate_movie_price()
         self.enter_text_to_element(self.price_input, str(price))
-        location = DataGenerator.generate_movie_location()  # "MSK" или "SPB"
-        self.click_element(self.location_input)  # Открываем combobox
-        self.page.get_by_role("option", name=location).click()  # Выбираем опцию
+        location = DataGenerator.generate_movie_location()
+        self.click_element(self.location_input)
+        self.page.get_by_role("option", name=location).click()
         self.enter_text_to_element(self.image_url_input, DataGenerator.generate_movie_image_url())
         self.click_filter(self.genre_button, option=DataGenerator.generate_movie_genre())
         self.click_element(self.send_button)
 
+    def assert_alert_was_pop_up(self):
+        self.check_pop_up_element_with_text("Фильм успешно добавлен")
 
 
 
